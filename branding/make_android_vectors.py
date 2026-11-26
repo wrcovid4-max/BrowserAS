@@ -4,9 +4,13 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(ROOT, "app", "src", "main", "res")
 
-LEFT = (20, 8, 34, 72, 7); RIGHT = (66, 28, 80, 92, 7)
-LINE = ((22, 82), (78, 18), 7)
-NODES = [((22, 82), 8, 0), ((50, 50), 7, 1), ((78, 18), 9, 2)]
+# Material 3 Expressive: bolder strokes and fully rounded ends (radius = half the bar width), larger nodes.
+LEFT = (18, 8, 36, 72, 9); RIGHT = (64, 28, 82, 92, 9)
+LINE = ((22, 82), (78, 18), 9)
+NODES = [((22, 82), 10, 0), ((50, 50), 9, 1), ((78, 18), 11, 2)]
+# Adaptive icon: every pixel of the mark must sit inside the 66dp safe-zone circle of the 108dp canvas.
+# Farthest point of the mark from its centre (50,50) is about 53.5 units, so scale = 33 / 53.5 -> 0.6 (radius 32dp). Centre = 54dp.
+SC = 0.6; TR = 54 - 50 * SC
 PAL = {
     "day": dict(l=("#5FC9B5", "#6FB5E6"), r=("#9DB5F2", "#7FE0CF"), nodes=["#5FC9B5", "#6C9BE8", "#8FD9C6"], line=("#5FC9B5", "#8FB4F0")),
     "night": dict(l=("#2FD6C0", "#3FA8D8"), r=("#5B6FE0", "#35D6C2"), nodes=["#35D6C2", "#5B7FE8", "#2FD6C0"], line=("#35D6C2", "#5B7FE8")),
@@ -44,9 +48,19 @@ def vector(body, vp, wh, group=None):
 def write(rel, text):
     p = os.path.join(RES, rel); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write(text)
 
-write("drawable/ic_launcher_foreground.xml", vector(paths(PAL["day"]), 108, 108, (27, 0.54)))
-write("drawable-night/ic_launcher_foreground.xml", vector(paths(PAL["night"]), 108, 108, (27, 0.54)))
-write("drawable/ic_launcher_monochrome.xml", vector(paths(PAL["day"], mono=True), 108, 108, (27, 0.54)))
+write("drawable/ic_launcher_foreground.xml", vector(paths(PAL["day"]), 108, 108, (TR, SC)))
+write("drawable-night/ic_launcher_foreground.xml", vector(paths(PAL["night"]), 108, 108, (TR, SC)))
+write("drawable/ic_launcher_monochrome.xml", vector(paths(PAL["day"], mono=True), 108, 108, (TR, SC)))
+# Android 12+ splash screen: 288dp canvas, icon must fit inside a 192dp circle (radius 96). Mark radius 53.5 * 1.6 = 85.6.
+write("drawable/ic_splash_icon.xml", vector(paths(PAL["day"]), 288, 288, (144 - 50 * 1.6, 1.6)))
+write("drawable-night/ic_splash_icon.xml", vector(paths(PAL["night"]), 288, 288, (144 - 50 * 1.6, 1.6)))
+write("values-v31/themes.xml", '''<resources>
+    <style name="Theme.TheBrowser" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+    </style>
+</resources>
+''')
 write("drawable/ic_hydrogen_mark.xml", vector(paths(PAL["brand"]), 100, 100))
 write("values/colors.xml", '<resources>\n    <color name="ic_launcher_background">#E6F3FA</color>\n</resources>\n')
 write("values-night/colors.xml", '<resources>\n    <color name="ic_launcher_background">#1B2733</color>\n</resources>\n')
