@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Hydrogen</string>
+    <string name="shortcut_new_tab">New tab</string>
+    <string name="shortcut_private_tab">Private tab</string>
+    <string name="shortcut_gemini">Ask Gemini</string>
+</resources>

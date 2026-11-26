@@ -1,0 +1,15 @@
+*.iml
+.gradle/
+local.properties
+/.idea/
+.DS_Store
+build/
+captures/
+*.jks
+*.keystore
+google-services.json
+CLAUDE.md
+apple/*.xcodeproj/
+apple/build/
+xcuserdata/
+apple/

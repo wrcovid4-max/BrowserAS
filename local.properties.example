@@ -1,0 +1,6 @@
+sdk.dir=/path/that/android/studio/fills/in
+
+# OPTIONAL. Base URL of YOUR OWN Gemini proxy (keeps the API key off the device).
+# Leave blank to call Google's endpoint directly with the key you enter in-app.
+# NEVER put a Gemini API key in this file or anywhere in the source tree.
+GEMINI_PROXY_URL=
