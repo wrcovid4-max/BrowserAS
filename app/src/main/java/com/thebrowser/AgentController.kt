@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.thebrowser.core.agent.*
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import com.thebrowser.core.engine.EngineSession
 import com.thebrowser.core.model.*
 import com.thebrowser.core.reader.Reader
@@ -93,7 +95,7 @@ class AgentController(private val vm: BrowserViewModel) {
     suspend fun requestApproval(agent: String, tool: String, desc: String, host: String?): Boolean = approvalLock.withLock {
         val req = AgentApprovalRequest(agent, tool, desc, host, CompletableDeferred())
         withContext(Dispatchers.Main) { approval = req }
-        val ok = withTimeoutOrNull(90_000) { req.decision.await() } ?: false
+        val ok = withTimeoutOrNull(90.seconds) { req.decision.await() } ?: false
         withContext(Dispatchers.Main) { approval = null }
         log(agent, tool, host, if (ok) "approved" else "declined")
         ok
@@ -103,7 +105,7 @@ class AgentController(private val vm: BrowserViewModel) {
         suspendCancellableCoroutine { c -> s.evaluate(js) { raw -> c.resumeWith(Result.success(Reader.pageText(raw, 400_000))) } }
     }
 
-    private suspend fun waitLoaded(tabId: String) { delay(250); var i = 0; while ((vm.progress[tabId] ?: 100) < 100 && i++ < 100) delay(150) }
+    private suspend fun waitLoaded(tabId: String) { delay(250.milliseconds); var i = 0; while ((vm.progress[tabId] ?: 100) < 100 && i++ < 100) delay(150.milliseconds) }
 
     private fun agentSpaceId(): String {
         vm.state.value.spaces.firstOrNull { it.name == "Agent" && it.emoji == "🤖" }?.let { return it.id }
@@ -139,7 +141,7 @@ class AgentController(private val vm: BrowserViewModel) {
             lastTouch = t0
             if (s.autoStopMinutes > 0 && t0 - burstStart > s.autoStopMinutes * 60_000L) { paused = true; return err("Agent control reached its ${s.autoStopMinutes}-minute limit and was paused. The user can resume it.") }
             withContext(Dispatchers.Main) { activity = AgentActivity(caller.name, name) }
-            vm.viewModelScope.launch { delay(20_000); if (now() - lastTouch >= 19_000) activity = null }
+            vm.viewModelScope.launch { delay(20.seconds); if (now() - lastTouch >= 19_000) activity = null }
             val def = AgentDef(caller.id, caller.name, "", "", AgentCatalog.toolsFor(caller.scopes).map { it.name },
                 caller.profile?.let { p -> p.copy(scopes = caller.scopes.toList(), blockedDomains = (p.blockedDomains + s.blockedDomains).distinct(), allowPurchases = p.allowPurchases && s.allowPurchases) }
                     ?: PermissionProfile(scopes = caller.scopes.toList(), approvalMode = s.mode, allowPurchases = s.allowPurchases, blockedDomains = s.blockedDomains))
@@ -148,7 +150,7 @@ class AgentController(private val vm: BrowserViewModel) {
                 is PolicyDecision.Deny -> "Blocked by Hydrogen: ${d.reason}"
                 is PolicyDecision.Approve -> if (requestApproval(caller.name, name, "${d.reason} $desc".trim(), risk.host)) null else "The user declined this action."
             }
-            val out = try { run(name, args, caller, ::gate) } catch (e: Exception) { err("${e.message ?: "failed"}") }
+            val out = try { run(name, args, caller, ::gate) } catch (e: Exception) { err(e.message ?: "failed") }
             log(caller.name, name, resolve(args.optString("tabId").ifBlank { null })?.let { com.thebrowser.core.atc.AirTrafficControl.hostOf(it.url) }, if (out.isError) "error: ${out.text.take(80)}" else "ok")
             return out
         }
@@ -180,7 +182,7 @@ class AgentController(private val vm: BrowserViewModel) {
                     if (t.id !in owned && !settings.allowAllTabs) return err("Agents may only close tabs they opened.")
                     withContext(Dispatchers.Main) { vm.closeTab(t.id) }; owned -= t.id; return AgentResult("Closed.")
                 }
-                "browser_wait" -> { delay((a.optDouble("seconds", 2.0).coerceIn(0.0, 10.0) * 1000).toLong()); return AgentResult("Waited.") }
+                "browser_wait" -> { delay((a.optDouble("seconds", 2.0).coerceIn(0.0, 10.0) * 1000).toLong().milliseconds); return AgentResult("Waited.") }
             }
             val tab = resolve(a.optString("tabId").ifBlank { null }) ?: return noTab()
             val sess = session(tab)
@@ -212,7 +214,7 @@ class AgentController(private val vm: BrowserViewModel) {
                 "browser_click", "browser_type", "browser_select" -> {
                     val ref = a.optString("ref"); if (ref.isBlank()) return err("ref is required.")
                     // The host always comes from the tab itself, never from what the page says about itself; the address can only add risk.
-                    val risk = com.thebrowser.core.agent.UrlRisk.escalate(AgentJs.risk(evalJs(sess, AgentJs.call("inspect", ref))).copy(host = host), tab.url)
+                    val risk = UrlRisk.escalate(AgentJs.risk(evalJs(sess, AgentJs.call("inspect", ref))).copy(host = host), tab.url)
                     if (evalJs(sess, AgentJs.call("inspect", ref)).contains("\"error\"")) return err("ref $ref not found. Call browser_read_page again.")
                     gate(risk, "“${risk.label}” on ${risk.host}")?.let { return err(it) }
                     val r = when (name) {

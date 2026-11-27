@@ -19,6 +19,9 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "0.2.0"
+        // GeckoView ships native libraries for four CPU types (hundreds of MB in a debug APK, so installs crawl or stall).
+        // Almost every phone is arm64. Add "x86_64" here if you use an emulator on an Intel/AMD PC.
+        ndk { abiFilters += listOf("arm64-v8a") }
         // Optional proxy URL only. No API key is ever baked into the binary.
         buildConfigField("String", "GEMINI_PROXY_URL", "\"${localProps.getProperty("GEMINI_PROXY_URL", "")}\"")
     }

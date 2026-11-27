@@ -35,6 +35,11 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // If the last run crashed, show the error first. "Open Hydrogen" clears it and starts normally.
+        CrashLog.pending(this)?.let { report ->
+            setContent { androidx.compose.material3.MaterialTheme { com.thebrowser.ui.CrashScreen(report) { CrashLog.clear(this); recreate() } } }
+            return
+        }
         vm.uiContext = this
         vm.fileChooserLauncher = { intent, done -> pendingChooser = done; chooser.launch(intent) }
         vm.runtimePermissionLauncher = { perms, done -> pendingPermissions = done; permissions.launch(perms) }

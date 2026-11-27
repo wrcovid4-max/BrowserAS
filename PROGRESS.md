@@ -83,3 +83,7 @@ Known remaining: DNS rebinding between the check and the fetch is reduced, not e
 - `PdfEngine.kt`: `PdfOp` now declares `page`. `PdfScreen.kt`: `maxWidth` read before the nested Box.
 - `Overlays.kt`: `AndroidView` called with named `modifier =` and `factory =`.
 - Checked by script across the repo: no duplicate or unresolved project imports left. Still not compiled; more errors may appear once these are cleared.
+
+## Launch problem on the phone
+- Cause not yet confirmed (no log). Two likely ones are handled: (1) the debug APK carried GeckoView's native libraries for four CPU types, which makes the USB install very slow or stall, so the build now keeps only arm64-v8a (add `x86_64` in `app/build.gradle.kts` for an emulator); (2) a startup crash, so any crash is now saved and shown on the next launch with Copy and Share buttons (`CrashLog`, `CrashScreen`).
+- Also tidied the AgentController warnings (Duration overloads, redundant template and qualifier).

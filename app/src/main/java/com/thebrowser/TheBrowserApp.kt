@@ -35,6 +35,11 @@ class AppContainer(private val app: Application) {
 class TheBrowserApp : Application() {
     val container by lazy { AppContainer(this) }
 
+    override fun onCreate() {
+        super.onCreate()
+        CrashLog.install(this)
+    }
+
     /** Launcher long-press shortcuts: one per Space (max 3 dynamic shortcuts). */
     fun publishSpaceShortcuts(spaces: List<Space>) {
         runCatching {
