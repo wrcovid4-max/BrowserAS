@@ -87,3 +87,8 @@ Known remaining: DNS rebinding between the check and the fetch is reduced, not e
 ## Launch problem on the phone
 - Cause not yet confirmed (no log). Two likely ones are handled: (1) the debug APK carried GeckoView's native libraries for four CPU types, which makes the USB install very slow or stall, so the build now keeps only arm64-v8a (add `x86_64` in `app/build.gradle.kts` for an emulator); (2) a startup crash, so any crash is now saved and shown on the next launch with Copy and Share buttons (`CrashLog`, `CrashScreen`).
 - Also tidied the AgentController warnings (Duration overloads, redundant template and qualifier).
+
+## Install problem from Android Studio
+- Debug builds now use applicationId `com.thebrowser.debug` (no clash with an older install's signature or version); debug shortcuts point at that id.
+- Gecko is off by default (`hydrogen.gecko=false`) so the APK is small and no GeckoView download or CPU-type mismatch can block the install; turn it on once the app runs.
+- Exact failure reason still unknown until `adb install` or the Run tab shows `INSTALL_FAILED_…`.

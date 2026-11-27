@@ -31,5 +31,7 @@ pip install pillow numpy && python3 branding/make_icons.py     # writes the Appl
 ## Git
 `main` only, no extra branches. `local.properties`, keystores and `CLAUDE.md` are gitignored.
 
-## Gecko engine (optional)
-The Android build includes `:engine-gecko` (GeckoView, from maven.mozilla.org). To build without it, add `hydrogen.gecko=false` to `gradle.properties`. `geckoview` is set to `+` in `gradle/libs.versions.toml`; after the first successful sync, pin the version Gradle resolved, because GeckoView's API changes between majors and `GeckoEngineSession.kt` was written without compiling.
+## Gecko engine (optional, off by default)
+Gecko is off by default (`hydrogen.gecko=false` in `gradle.properties`) because it makes the APK very large. Set it to `true` and sync to include it. When on, the Android build includes `:engine-gecko` (GeckoView, from maven.mozilla.org). To build without it, add `hydrogen.gecko=false` to `gradle.properties`. `geckoview` is set to `+` in `gradle/libs.versions.toml`; after the first successful sync, pin the version Gradle resolved, because GeckoView's API changes between majors and `GeckoEngineSession.kt` was written without compiling.
+
+Debug builds install as `com.thebrowser.debug`, so they can sit beside any older Hydrogen build without a signature clash.

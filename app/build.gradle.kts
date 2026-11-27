@@ -20,10 +20,17 @@ android {
         versionCode = 2
         versionName = "0.2.0"
         // GeckoView ships native libraries for four CPU types (hundreds of MB in a debug APK, so installs crawl or stall).
-        // Almost every phone is arm64. Add "x86_64" here if you use an emulator on an Intel/AMD PC.
-        ndk { abiFilters += listOf("arm64-v8a") }
+        // Only matters when Gecko is included (hydrogen.gecko=true). Add "x86_64" for an emulator on an Intel/AMD PC.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         // Optional proxy URL only. No API key is ever baked into the binary.
         buildConfigField("String", "GEMINI_PROXY_URL", "\"${localProps.getProperty("GEMINI_PROXY_URL", "")}\"")
+    }
+    buildTypes {
+        debug {
+            // Installs next to any older "com.thebrowser" already on the phone, instead of clashing with its signature or version.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
     buildFeatures {
         compose = true
