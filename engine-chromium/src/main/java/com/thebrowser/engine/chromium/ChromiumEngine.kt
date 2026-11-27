@@ -37,10 +37,38 @@ class ChromiumEngine(private val appContext: Context) : BrowserEngine {
 
     /** Maps our profile id to a WebView profile name. Names are restricted, so sanitise. */
     internal fun profileName(profileId: String): String =
-        if (profileId == DEFAULT_PROFILE_ID) ProfileStore.DEFAULT_PROFILE_NAME
+        if (profileId == DEFAULT_PROFILE_ID) WEBVIEW_DEFAULT_PROFILE
         else "tb_" + profileId.filter { it.isLetterOrDigit() || it == '_' }
 
     internal val cname by lazy { CnameChecker(appContext) }
+
+    @Volatile private var passkeyMode: String? = null   // "browser" | "app" | "off" | "unsupported", set when a tab enables it
+
+    /**
+     * Turns on WebAuthn/passkeys for a tab through Credential Manager. Tries "browser" mode first (needs Hydrogen to be on Google's
+     * privileged-browser allowlist); otherwise falls back to "app" mode, which only works for sites whose Digital Asset Links name this app.
+     */
+    @SuppressLint("RequiresFeature")
+    internal fun configurePasskeys(settings: android.webkit.WebSettings, enabled: Boolean) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) { passkeyMode = "unsupported"; return }
+        if (!enabled) { runCatching { androidx.webkit.WebSettingsCompat.setWebAuthenticationSupport(settings, runCatching { androidx.webkit.WebSettingsCompat::class.java.getField("WEB_AUTHENTICATION_SUPPORT_NONE").getInt(null) }.getOrDefault(0)) }; passkeyMode = "off"; return }
+        val browserMode = runCatching { androidx.webkit.WebSettingsCompat::class.java.getField("WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER").getInt(null) }.getOrNull()
+        if (browserMode != null) runCatching { androidx.webkit.WebSettingsCompat.setWebAuthenticationSupport(settings, browserMode) }
+        val applied = runCatching { androidx.webkit.WebSettingsCompat.getWebAuthenticationSupport(settings) }.getOrNull()
+        if (browserMode != null && applied == browserMode) { passkeyMode = "browser"; return }
+        runCatching { androidx.webkit.WebSettingsCompat.setWebAuthenticationSupport(settings, androidx.webkit.WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP) }
+        passkeyMode = if (runCatching { androidx.webkit.WebSettingsCompat.getWebAuthenticationSupport(settings) }.getOrNull() == androidx.webkit.WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP) "app" else "off"
+    }
+
+    override fun passkeyStatus(): String = when (passkeyMode) {
+        "browser" -> "On (browser mode). Passkeys work on any site."
+        "app" -> "On (app mode). Works only on sites that list Hydrogen in their Digital Asset Links. Passkeys on every site need Hydrogen to be added to Google's privileged-browser allowlist."
+        "off" -> "Off."
+        "unsupported" -> "This Android System WebView does not support passkeys. Update WebView."
+        else -> if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) "Supported. Turns on when you open a tab." else "This Android System WebView does not support passkeys. Update WebView."
+    }
+
+    private companion object { const val WEBVIEW_DEFAULT_PROFILE = "Default" }
 
     @SuppressLint("RequiresFeature")
     override fun securityInfo(): EngineSecurityInfo {

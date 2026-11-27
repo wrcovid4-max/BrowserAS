@@ -68,6 +68,7 @@ fun BrowserApp(vm: BrowserViewModel) {
                         Sidebar(vm, compact = state.settings.sidebarCompact, onNavigate = {})
                     }
                     Column(Modifier.weight(1f).fillMaxHeight()) {
+                        if (state.settings.tabLayout == "horizontal") TabStrip(vm)
                         TopBar(vm, wide = true, onMenu = { vm.sidebarVisible = !vm.sidebarVisible })
                         WebArea(vm, wide = true, modifier = Modifier.weight(1f))
                     }
@@ -87,6 +88,7 @@ fun BrowserApp(vm: BrowserViewModel) {
                     },
                 ) {
                     Column(Modifier.fillMaxSize()) {
+                        if (state.settings.tabLayout == "horizontal") TabStrip(vm)
                         TopBar(vm, wide = false, onMenu = { scope.launch { drawer.open() } })
                         WebArea(vm, wide = false, modifier = Modifier.weight(1f))
                     }
@@ -99,7 +101,8 @@ fun BrowserApp(vm: BrowserViewModel) {
             }
         }
 
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
+        if (vm.hideMode) HideItemsBar(vm, Modifier.align(Alignment.BottomCenter))
+        else SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
 
         vm.pdfFile?.let { com.thebrowser.pdf.PdfViewerDialog(vm, it) }
         AgentDock(vm)
@@ -191,6 +194,10 @@ private fun TopBar(vm: BrowserViewModel, wide: Boolean, onMenu: () -> Unit) {
                         DropdownMenuItem({ Text("Clip to research note") }, { menu = false; vm.clipToNote(null) })
                         DropdownMenuItem({ Text("Open in Little window") }, { menu = false; tab?.url?.takeIf { it.isNotBlank() }?.let(vm::openInLittleWindow) })
                         DropdownMenuItem({ Text("Add to home screen as app") }, { menu = false; vm.pinWebApp() })
+                        DropdownMenuItem({ Text("Hide Distracting Items") }, { menu = false; vm.startHideMode() }, enabled = tab != null && tab.url.isNotBlank())
+                        if (vm.hiddenCountForActiveSite() > 0) DropdownMenuItem({ Text("Show hidden items (${vm.hiddenCountForActiveSite()})") }, {
+                            menu = false; tab?.url?.let { AirTrafficControl.hostOf(it) }?.let(vm::showHiddenItems)
+                        })
                         DropdownMenuItem({ Text("Find in page") }, { menu = false; vm.findOpen = true })
                         DropdownMenuItem({ Text("Print page") }, { menu = false; vm.print() })
                         DropdownMenuItem({ Text("Share link") }, {

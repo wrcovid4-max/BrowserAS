@@ -119,5 +119,6 @@ fun AppearanceSection(vm: BrowserViewModel) {
             }
             OutlinedButton({ vm.updateSettings { it.copy(theme = ThemeSettings()) } }) { Text("Reset appearance") }
         }
+        item { TabsAndPageSettings(vm) }
     }
 }

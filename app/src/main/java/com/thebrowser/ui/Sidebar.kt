@@ -183,8 +183,9 @@ private fun TabItem(vm: BrowserViewModel, tab: Tab, compact: Boolean, selected: 
     var menu by remember { mutableStateOf(false) }
     var consent by remember { mutableStateOf<String?>(null) }
     val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent
+    TabHoverHost(vm, tab, below = false, modifier = Modifier.fillMaxWidth()) { hoverMod ->
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 1.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+        hoverMod.fillMaxWidth().padding(vertical = 1.dp).clip(RoundedCornerShape(10.dp)).background(bg)
             .tabDropTarget { dragged -> vm.moveTabBefore(dragged, tab.id); true }
             .combinedClickable(onClick = { vm.selectTab(tab.id); onNavigate() }, onLongClick = { menu = true })
             .padding(horizontal = 8.dp, vertical = 6.dp),
@@ -217,6 +218,7 @@ private fun TabItem(vm: BrowserViewModel, tab: Tab, compact: Boolean, selected: 
             }
             DropdownMenuItem({ Text("Close tab") }, { menu = false; vm.closeTab(tab.id) })
         }
+    }
     }
     consent?.let { target ->
         val sp = state.spaces.firstOrNull { it.id == target }

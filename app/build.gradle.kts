@@ -36,6 +36,9 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":engine-chromium"))
+    // Passkeys in WebView go through Credential Manager (WebView looks for it on the app classpath).
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
     if (providers.gradleProperty("hydrogen.gecko").orNull != "false") implementation(project(":engine-gecko"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.biometric)

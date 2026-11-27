@@ -318,6 +318,7 @@ internal class ChromiumSession(
             displayZoomControls = false
             mediaPlaybackRequiresUserGesture = true
             if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) WebSettingsCompat.setSafeBrowsingEnabled(this, true)
+            engine.configurePasskeys(this, engineSettings.passkeys && !shield.isPrivate)   // no passkeys in private tabs: they would be stored on the device
         }
         if (shield.isPrivate) webView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         webView.webViewClient = client

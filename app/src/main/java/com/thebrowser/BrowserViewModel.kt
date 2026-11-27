@@ -27,6 +27,10 @@ import com.thebrowser.core.atc.AtcDecision
 import com.thebrowser.core.engine.EngineListener
 import com.thebrowser.core.engine.EngineSession
 import com.thebrowser.core.engine.EngineSettings
+import com.thebrowser.core.page.DistractionJs
+import com.thebrowser.core.page.JsValue
+import com.thebrowser.core.page.TabMemory
+import com.thebrowser.core.page.TabMemoryJs
 import com.thebrowser.core.model.*
 import com.thebrowser.core.ext.MatchPattern
 import com.thebrowser.core.reader.Reader
@@ -97,6 +101,99 @@ class BrowserViewModel(private val app: Application) : AndroidViewModel(app) {
     var manage by mutableStateOf<ManageSection?>(null)
     var reader by mutableStateOf<ReaderArticle?>(null)
     var routePrompt by mutableStateOf<RoutePrompt?>(null)
+
+    // ───────── Hide Distracting Items ─────────
+    var hideMode by mutableStateOf(false)
+    var hideSelected by mutableStateOf(false)
+    var hideCount by mutableStateOf(0)
+    private var hideTabId: String? = null
+    private var hideJob: kotlinx.coroutines.Job? = null
+
+    internal fun applyHidden(tabId: String, url: String) {
+        val host = AirTrafficControl.hostOf(url) ?: return
+        val list = state.value.hiddenElements[host]?.takeIf { it.isNotEmpty() } ?: return
+        sessions[tabId]?.evaluate(DistractionJs.apply(list)) { }
+    }
+
+    fun startHideMode() {
+        val tab = state.value.activeTab ?: return
+        if (tab.url.isBlank()) { message = "Open a web page first."; return }
+        val s = sessions[tab.id] ?: return
+        findOpen = false
+        s.evaluate(DistractionJs.START) { raw ->
+            if (raw == null) { message = "Hide Distracting Items needs page scripts, which this engine can't run (Gecko mode)." }
+            else {
+                hideMode = true; hideTabId = tab.id; hideSelected = false; hideCount = 0
+                hideJob?.cancel()
+                hideJob = viewModelScope.launch {
+                    while (hideMode) {
+                        val id = hideTabId
+                        if (id == null || state.value.activeTabId != id) { endHideMode(true); break }
+                        sessions[id]?.evaluate(DistractionJs.STATE) { r -> DistractionJs.parseState(r)?.let { hideSelected = it.selected; hideCount = it.hiddenCount } }
+                        delay(350)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun hideSession() = hideTabId?.let { sessions[it] }
+    private fun hideHost(): String? = hideTabId?.let { id -> tabOf(id)?.url?.let { AirTrafficControl.hostOf(it) } }
+
+    fun hideLarger() { hideSession()?.evaluate(DistractionJs.LARGER) { } }
+
+    fun hideSelectedItem() {
+        val id = hideTabId ?: return
+        val host = hideHost()
+        hideSession()?.evaluate(DistractionJs.HIDE) { raw ->
+            val sel = JsValue.string(raw)
+            if (!sel.isNullOrBlank() && host != null) {
+                // Private tabs hide the item for this visit only: remembering it would record that the site was visited.
+                if (tabOf(id)?.isPrivate != true) update { st -> st.copy(hiddenElements = st.hiddenElements + (host to DistractionJs.safe((st.hiddenElements[host] ?: emptyList()) + sel).takeLast(200))) }
+            }
+        }
+    }
+
+    fun hideUndo() {
+        val host = hideHost()
+        hideSession()?.evaluate(DistractionJs.UNDO) { raw ->
+            val sel = JsValue.string(raw)
+            if (!sel.isNullOrBlank() && host != null) update { st -> st.copy(hiddenElements = st.hiddenElements + (host to ((st.hiddenElements[host] ?: emptyList()) - sel))) }
+        }
+    }
+
+    fun endHideMode(stopPage: Boolean) {
+        if (stopPage) hideSession()?.evaluate(DistractionJs.STOP) { }
+        hideMode = false; hideSelected = false; hideCount = 0; hideTabId = null; hideJob?.cancel()
+    }
+
+    /** Brings back everything hidden on a site (Settings, or the page menu). */
+    fun showHiddenItems(host: String) {
+        update { st -> st.copy(hiddenElements = st.hiddenElements - host) }
+        val tab = state.value.activeTab
+        if (tab != null && AirTrafficControl.hostOf(tab.url) == host) sessions[tab.id]?.evaluate(DistractionJs.apply(emptyList())) { }
+    }
+
+    fun hiddenCountForActiveSite(): Int = state.value.activeTab?.url?.let { AirTrafficControl.hostOf(it) }?.let { state.value.hiddenElements[it]?.size } ?: 0
+
+    // ───────── Tab hover preview + memory ─────────
+    val hoverMemory = mutableStateMapOf<String, TabMemory>()
+    val hoverLoaded = mutableStateMapOf<String, Boolean>()
+
+    /** Refreshes the preview picture and the memory figure for a tab the pointer is resting on. */
+    fun refreshHover(tabId: String) {
+        val s = sessions[tabId]
+        hoverLoaded[tabId] = s != null
+        if (s == null) { hoverMemory.remove(tabId); return }
+        s.snapshot(THUMB_W)?.let { thumbs[tabId] = it }
+        s.evaluate(TabMemoryJs.SCRIPT) { raw -> TabMemoryJs.parse(raw)?.let { hoverMemory[tabId] = it } ?: hoverMemory.remove(tabId) }
+    }
+
+    fun setTabLayout(layout: String) {
+        updateSettings { it.copy(tabLayout = layout) }
+        if (layout == "horizontal") sidebarVisible = false
+    }
+
     var pendingSend by mutableStateOf<PendingSend?>(null)
     var permissionPrompt by mutableStateOf<PermissionPrompt?>(null)
     var extensionToApprove by mutableStateOf<InstalledExtension?>(null)
@@ -218,7 +315,7 @@ class BrowserViewModel(private val app: Application) : AndroidViewModel(app) {
         sessions[tab.id]?.let { return it }
         val s = state.value
         val scripts = if (tab.isPrivate) emptyList() else c.extensions.scripts(s.extensions) // extensions never run in private tabs
-        val session = engine.createSession(context, profileOf(tab), EngineSettings(shieldConfigFor(tab), s.settings.blockPopups, scripts), listenerFor(tab.id))
+        val session = engine.createSession(context, profileOf(tab), EngineSettings(shieldConfigFor(tab), s.settings.blockPopups, scripts, s.settings.passkeys), listenerFor(tab.id))
         sessions[tab.id] = session
         if (tab.url.isNotBlank()) session.load(tab.url)
         evict()
@@ -254,9 +351,9 @@ class BrowserViewModel(private val app: Application) : AndroidViewModel(app) {
         override fun onTitleChanged(title: String) = updateTab(tabId) { it.copy(title = title) }
         override fun onProgress(percent: Int) { progress[tabId] = percent }
         override fun onNavState(canGoBack: Boolean, canGoForward: Boolean) { canBack[tabId] = canGoBack; canForward[tabId] = canGoForward }
-        override fun onPageFinished(url: String, title: String) = addHistory(tabId, url, title)
+        override fun onPageFinished(url: String, title: String) { addHistory(tabId, url, title); applyHidden(tabId, url) }
         override fun onOpenInNewTab(url: String) = openLink(url)
-        override fun onPageCommitted(url: String) { pageShield[tabId] = PageShield(); securityBlocks.remove(tabId) }
+        override fun onPageCommitted(url: String) { pageShield[tabId] = PageShield(); securityBlocks.remove(tabId); applyHidden(tabId, url); if (hideTabId == tabId) endHideMode(false) }
 
         override fun onShieldEvent(kind: ShieldEventKind, host: String) {
             recordStat(kind)

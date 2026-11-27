@@ -34,7 +34,7 @@ internal class GeckoEngineSession(
     @Volatile private var shield: ShieldConfig = engineSettings.shield
     private val blockPopups = engineSettings.blockPopups
     private val geckoView = GeckoView(context)
-    private lateinit var session: GeckoSession
+    private val session: GeckoSession
     private var back = false
     private var forward = false
     private var url = ""

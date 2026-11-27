@@ -47,6 +47,7 @@ data class EngineSettings(
     val shield: ShieldConfig,
     val blockPopups: Boolean = true,
     val contentScripts: List<ContentScript> = emptyList(),
+    val passkeys: Boolean = true,
 )
 
 /** What the engine can honestly report about its own protections. Unknowns are null, never guessed. */
@@ -99,6 +100,9 @@ interface BrowserEngine {
     val supportsContentScripts: Boolean
 
     fun securityInfo(): EngineSecurityInfo
+
+    /** Plain-language passkey (WebAuthn) status for Settings. */
+    fun passkeyStatus(): String = "Not available with this engine."
 
     fun createSession(context: Context, profileId: String, settings: EngineSettings, listener: EngineListener): EngineSession
     fun cookiesFor(profileId: String, url: String): String?

@@ -349,6 +349,10 @@ data class Settings(
     val temporaryTabHours: Int = 12,
     val trackingProtection: Boolean = true,
     val searchSuggestions: Boolean = false,
+    val tabLayout: String = "vertical",      // vertical (sidebar) | horizontal (tab strip)
+    val tabHoverPreview: Boolean = true,      // page preview when the pointer rests on a tab
+    val tabHoverMemory: Boolean = true,       // memory figure in that preview
+    val passkeys: Boolean = true,
     val dynamicColor: Boolean = true,
     val shield: com.thebrowser.core.shield.ShieldSettings = com.thebrowser.core.shield.ShieldSettings(),
     val agent: AgentSettings = AgentSettings(),
@@ -392,6 +396,8 @@ data class BrowserState(
     val memories: List<MemoryItem> = emptyList(),
     val integrations: List<IntegrationConfig> = emptyList(),
     val agentLog: List<AgentLogEntry> = emptyList(),
+    /** Hide Distracting Items: CSS selectors the user hid, per site (host). Never written for private tabs. */
+    val hiddenElements: Map<String, List<String>> = emptyMap(),
     val activeSpaceId: String = "space-home",
     val activeTabId: String? = null,
     val splitTabId: String? = null,
