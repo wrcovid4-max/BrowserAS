@@ -75,3 +75,11 @@ Known remaining: DNS rebinding between the check and the fetch is reduced, not e
 - **Memory on hover:** Android gives an app no per-tab memory figure. The card shows the page's JavaScript heap, number of page elements, and whether the tab is Active, In background or Sleeping (not loaded). Labelled as a lower bound.
 - **Passkeys:** WebAuthn turned on through Credential Manager (androidx.credentials added). Tries browser mode first, falls back to app mode. App mode works only on sites that list Hydrogen in their Digital Asset Links; passkeys on every site need Hydrogen on Google's privileged-browser allowlist. Off in private tabs. Status shown in Settings.
 - **First-run build fixes:** `DEFAULT_PROFILE_NAME` (not in androidx.webkit) replaced by the literal "Default"; Gecko `lateinit` warning removed.
+
+## First build, second pass (43 errors in :app)
+- `BrowserViewModel.kt`: the import block was corrupted (a block repeated, `java.net.URLArticle`, missing `ReaderArticle`), which caused 18 errors and the cascade in `BrowserApp.kt`. Rewritten cleanly.
+- `ManageSection` (declared in the `com.thebrowser` package) imported in `Sidebar.kt`, `GeminiPanel.kt`, `Overlays.kt`.
+- `AgentController.kt`: cross-module smart cast on `caller.profile` replaced with `let`.
+- `PdfEngine.kt`: `PdfOp` now declares `page`. `PdfScreen.kt`: `maxWidth` read before the nested Box.
+- `Overlays.kt`: `AndroidView` called with named `modifier =` and `factory =`.
+- Checked by script across the repo: no duplicate or unresolved project imports left. Still not compiled; more errors may appear once these are cleared.

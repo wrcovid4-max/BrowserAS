@@ -34,6 +34,7 @@ import com.thebrowser.core.page.TabMemoryJs
 import com.thebrowser.core.model.*
 import com.thebrowser.core.ext.MatchPattern
 import com.thebrowser.core.reader.Reader
+import com.thebrowser.core.reader.ReaderArticle
 import com.thebrowser.core.shield.*
 import com.thebrowser.core.stats.PageShield
 import com.thebrowser.core.stats.ProtectionStats
@@ -41,15 +42,6 @@ import com.thebrowser.core.vault.*
 import android.webkit.URLUtil
 import java.net.HttpURLConnection
 import java.net.URL
-import com.thebrowser.core.ext.MatchPattern
-import com.thebrowser.core.reader.Reader
-import com.thebrowser.core.shield.*
-import com.thebrowser.core.stats.PageShield
-import com.thebrowser.core.stats.ProtectionStats
-import com.thebrowser.core.vault.*
-import android.webkit.URLUtil
-import java.net.HttpURLConnection
-import java.net.URLArticle
 import com.thebrowser.core.state.AppJson
 import com.thebrowser.core.sync.Sync
 import com.thebrowser.core.sync.SyncScope

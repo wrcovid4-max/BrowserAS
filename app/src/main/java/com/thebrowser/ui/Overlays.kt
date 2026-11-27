@@ -39,6 +39,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thebrowser.BrowserViewModel
+import com.thebrowser.ManageSection
 import com.thebrowser.PendingSend
 import com.thebrowser.RoutePrompt
 import com.thebrowser.core.atc.AirTrafficControl
@@ -203,7 +204,7 @@ fun ReaderDialog(vm: BrowserViewModel, article: ReaderArticle) {
                     TextButton(::toggleSpeak) { Text(if (speaking) "⏹" else "🔊") }
                 }
                 // Scripts are off in the reader: extracted HTML can never run code.
-                AndroidView(Modifier.fillMaxSize(), factory = { ctx ->
+                AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
                     WebView(ctx).apply {
                         settings.javaScriptEnabled = false
                         settings.allowFileAccess = false

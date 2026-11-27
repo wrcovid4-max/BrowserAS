@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thebrowser.BrowserViewModel
+import com.thebrowser.ManageSection
 import com.thebrowser.core.model.Tab
 import com.thebrowser.core.model.TabGroup
 

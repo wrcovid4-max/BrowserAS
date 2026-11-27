@@ -141,7 +141,7 @@ class AgentController(private val vm: BrowserViewModel) {
             withContext(Dispatchers.Main) { activity = AgentActivity(caller.name, name) }
             vm.viewModelScope.launch { delay(20_000); if (now() - lastTouch >= 19_000) activity = null }
             val def = AgentDef(caller.id, caller.name, "", "", AgentCatalog.toolsFor(caller.scopes).map { it.name },
-                caller.profile?.copy(scopes = caller.scopes.toList(), blockedDomains = (caller.profile.blockedDomains + s.blockedDomains).distinct(), allowPurchases = caller.profile.allowPurchases && s.allowPurchases)
+                caller.profile?.let { p -> p.copy(scopes = caller.scopes.toList(), blockedDomains = (p.blockedDomains + s.blockedDomains).distinct(), allowPurchases = p.allowPurchases && s.allowPurchases) }
                     ?: PermissionProfile(scopes = caller.scopes.toList(), approvalMode = s.mode, allowPurchases = s.allowPurchases, blockedDomains = s.blockedDomains))
             suspend fun gate(risk: ToolRisk, desc: String): String? = when (val d = PolicyEngine.check(name, def, risk, emptyList())) {
                 PolicyDecision.Allow -> null

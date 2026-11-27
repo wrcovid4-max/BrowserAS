@@ -20,9 +20,10 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 
 sealed class PdfOp {
+    abstract val page: Int
     /** [pts] are normalised (0..1, top-left origin) so they survive zooming. */
-    data class Ink(val page: Int, val pts: List<Pair<Float, Float>>, val argb: Int, val widthPt: Float, val highlighter: Boolean) : PdfOp()
-    data class Text(val page: Int, val x: Float, val y: Float, val text: String, val sizePt: Float, val argb: Int) : PdfOp()
+    data class Ink(override val page: Int, val pts: List<Pair<Float, Float>>, val argb: Int, val widthPt: Float, val highlighter: Boolean) : PdfOp()
+    data class Text(override val page: Int, val x: Float, val y: Float, val text: String, val sizePt: Float, val argb: Int) : PdfOp()
 }
 
 data class FormField(val name: String, val kind: String, val value: String, val options: List<String> = emptyList())

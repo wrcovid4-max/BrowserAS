@@ -98,8 +98,9 @@ fun PdfViewerDialog(vm: BrowserViewModel, file: File) {
                 if (tool != "view") Text(when (tool) { "pen" -> "Draw on a page with your finger or stylus."; "marker" -> "Highlighter: drag over text. It is a freehand marker, not text-aware."; "sign" -> "Draw your signature where it belongs."; else -> "Tap where the text goes." } + " Edits are saved into a copy.", fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp))
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     val widthPx = (constraints.maxWidth * zoom).toInt()
+                    val viewportWidth = maxWidth   // read here: inside the nested Box the outer scope's maxWidth is not reachable
                     Box(Modifier.horizontalScroll(rememberScrollState())) {
-                        LazyColumn(Modifier.width(maxWidth * zoom), state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyColumn(Modifier.width(viewportWidth * zoom), state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             itemsIndexed(List(session.pageCount) { it }) { i, _ ->
                                 val bmp by produceState<Bitmap?>(null, i, widthPx) { value = withContext(Dispatchers.IO) { runCatching { session.render(i, widthPx) }.getOrNull() } }
                                 Box(Modifier.fillMaxWidth()) {
