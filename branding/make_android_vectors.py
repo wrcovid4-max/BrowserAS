@@ -14,7 +14,10 @@ SC = 0.6; TR = 54 - 50 * SC
 PAL = {
     "day": dict(l=("#5FC9B5", "#6FB5E6"), r=("#9DB5F2", "#7FE0CF"), nodes=["#5FC9B5", "#6C9BE8", "#8FD9C6"], line=("#5FC9B5", "#8FB4F0")),
     "night": dict(l=("#2FD6C0", "#3FA8D8"), r=("#5B6FE0", "#35D6C2"), nodes=["#35D6C2", "#5B7FE8", "#2FD6C0"], line=("#35D6C2", "#5B7FE8")),
-    "brand": dict(l=("#3B82F6", "#5B6CF2"), r=("#8B5CF6", "#D946EF"), nodes=["#4F7CF0", "#6C6CF5", "#8B5CF6"], line=("#4F7CF0", "#8B5CF6")),
+    "brand": dict(l=("#0F7B76", "#1F9A94"), r=("#2F6FD0", "#4C8DEB"), nodes=["#0F7B76", "#2F6FD0", "#4C8DEB"], line=("#0F7B76", "#2F6FD0")),
+    # Launcher icon choices (Settings -> Appearance -> App icon): the H on white, and the H on black.
+    "white": dict(l=("#0F7B76", "#1F9A94"), r=("#2F6FD0", "#4C8DEB"), nodes=["#0F7B76", "#2F6FD0", "#4C8DEB"], line=("#0F7B76", "#2F6FD0")),
+    "black": dict(l=("#5ED8C8", "#8CE9DD"), r=("#8FB0FF", "#5ED8C8"), nodes=["#5ED8C8", "#8FB0FF", "#C2D3FF"], line=("#5ED8C8", "#8FB0FF")),
 }
 
 def rr(x0, y0, x1, y1, r):
@@ -67,4 +70,11 @@ write("values-night/colors.xml", '<resources>\n    <color name="ic_launcher_back
 adaptive = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/ic_launcher_background" />\n    <foreground android:drawable="@drawable/ic_launcher_foreground" />\n    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />\n</adaptive-icon>\n'
 write("mipmap-anydpi-v26/ic_launcher.xml", adaptive)
 write("mipmap-anydpi-v26/ic_launcher_round.xml", adaptive)
+write("drawable/ic_launcher_fg_white.xml", vector(paths(PAL["white"]), 108, 108, (TR, SC)))
+write("drawable/ic_launcher_fg_black.xml", vector(paths(PAL["black"]), 108, 108, (TR, SC)))
+write("values/icon_colors.xml", '<resources>\n    <color name="ic_bg_white">#FFFFFF</color>\n    <color name="ic_bg_black">#000000</color>\n</resources>\n')
+for name in ("white", "black"):
+    x = adaptive.replace("@color/ic_launcher_background", "@color/ic_bg_" + name).replace("@drawable/ic_launcher_foreground", "@drawable/ic_launcher_fg_" + name)
+    write("mipmap-anydpi-v26/ic_launcher_%s.xml" % name, x)
+    write("mipmap-anydpi-v26/ic_launcher_%s_round.xml" % name, x)
 print("android vectors written")

@@ -43,12 +43,12 @@ fun ManagePanel(vm: BrowserViewModel, section: ManageSection) {
             Column(Modifier.safeDrawingPadding()) {
                 Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton({ vm.manage = null }) { Icon(Icons.Default.Close, "Close") }
-                    Text(section.label, fontSize = 20.sp)
+                    Text(section.label, style = MaterialTheme.typography.headlineMedium)
                 }
                 ScrollableTabRow(sections.indexOf(section), edgePadding = 8.dp) {
                     sections.forEach { s -> Tab(s == section, { vm.manage = s }, text = { Text(s.label) }) }
                 }
-                Column(Modifier.fillMaxSize().padding(12.dp)) {
+                Column(Modifier.fillMaxSize().padding(horizontal = HSpace.x4, vertical = HSpace.x3)) {
                     when (section) {
                         ManageSection.Security -> SecuritySection(vm)
                         ManageSection.Permissions -> PermissionsSection(vm)
@@ -78,123 +78,16 @@ fun ManagePanel(vm: BrowserViewModel, section: ManageSection) {
 }
 
 @Composable private fun Label(text: String) =
-    Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+    Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = HSpace.x6, bottom = HSpace.x2))
 
 @Composable
-private fun SpacesSection(vm: BrowserViewModel) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    var rename by remember { mutableStateOf<String?>(null) }
-    var profileConsent by remember { mutableStateOf<Pair<String, String>?>(null) }
-    LazyColumn {
-        items(state.spaces, key = { it.id }) { sp ->
-            Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                Column(Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${sp.emoji} ${sp.name}", Modifier.weight(1f), fontSize = 16.sp)
-                        TextButton({ rename = sp.id }) { Text("Rename") }
-                        TextButton({ vm.deleteSpace(sp.id) }) { Text("Delete") }
-                    }
-                    Text("${state.tabs.count { it.spaceId == sp.id }} tabs · Profile: ${state.profiles.firstOrNull { it.id == sp.profileId }?.name}", fontSize = 12.sp)
-                    Spacer(Modifier.height(6.dp))
-                    ColorRow(sp.colorArgb) { c -> vm.updateSpace(sp.id) { it.copy(colorArgb = c) } }
-                    Spacer(Modifier.height(6.dp))
-                    EmojiRow(sp.emoji) { e -> vm.updateSpace(sp.id) { it.copy(emoji = e) } }
-                    Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.profiles.forEach { p ->
-                            FilterChip(sp.profileId == p.id, { if (p.id != sp.profileId) profileConsent = sp.id to p.id }, { Text(p.name) })
-                        }
-                    }
-                    TextButton({
-                        vm.exportSpace(sp.id)?.let { json ->
-                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_TEXT, json), "Save Space"))
-                        }
-                    }) { Text("Save / share this Space") }
-                }
-            }
-        }
-        item {
-            OutlinedButton({
-                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val text = cm.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
-                vm.message = if (vm.importSpace(text)) "Space restored as a new Space." else "Clipboard doesn't contain a saved Space."
-            }, Modifier.padding(top = 8.dp)) { Text("Restore a Space from clipboard") }
-            Label("Appearance")
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("system", "light", "dark").forEach { m ->
-                    FilterChip(state.settings.themeMode == m, { vm.updateSettings { it.copy(themeMode = m) } }, { Text(m.replaceFirstChar { c -> c.uppercase() }) })
-                }
-            }
-        }
-    }
-    rename?.let { id ->
-        NameDialog("Rename Space", state.spaces.firstOrNull { it.id == id }?.name.orEmpty(), "Save", { rename = null }) { n -> vm.updateSpace(id) { it.copy(name = n) }; rename = null }
-    }
-    profileConsent?.let { (spaceId, profileId) ->
-        AlertDialog(
-            onDismissRequest = { profileConsent = null }, title = { Text("Change this Space's Profile?") },
-            text = { Text("Its tabs will reload under the new Profile and will be signed out of sites, because Profiles never share logins.") },
-            confirmButton = { TextButton({ vm.updateSpace(spaceId) { it.copy(profileId = profileId) }; profileConsent = null }) { Text("Change") } },
-            dismissButton = { TextButton({ profileConsent = null }) { Text("Cancel") } },
-        )
-    }
-}
+private fun SpacesSection(vm: BrowserViewModel) = SpacesList(vm)
 
 @Composable
-private fun ProfilesSection(vm: BrowserViewModel) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    var add by remember { mutableStateOf(false) }
-    var rename by remember { mutableStateOf<String?>(null) }
-    Text(if (vm.engine.supportsIsolatedProfiles) "Each Profile has its own cookies, storage and logins (WebView multi-profile support detected)."
-    else "This device's WebView does not support multiple Profiles. Update Android System WebView to create more.", fontSize = 13.sp)
-    LazyColumn(Modifier.padding(top = 8.dp)) {
-        items(state.profiles, key = { it.id }) { p ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(p.name, fontSize = 16.sp)
-                    Text("${state.spaces.count { it.profileId == p.id }} Spaces · ${state.bookmarks.count { it.profileId == p.id }} bookmarks", fontSize = 12.sp)
-                }
-                TextButton({ rename = p.id }) { Text("Rename") }
-                TextButton({ vm.deleteProfile(p.id) }) { Text("Delete") }
-            }
-        }
-        item { Button({ add = true }, enabled = vm.engine.supportsIsolatedProfiles, modifier = Modifier.padding(top = 8.dp)) { Text("New Profile") } }
-    }
-    if (add) NameDialog("New Profile", "", "Create", { add = false }) { vm.createProfile(it); add = false }
-    rename?.let { id -> NameDialog("Rename Profile", state.profiles.firstOrNull { it.id == id }?.name.orEmpty(), "Save", { rename = null }) { vm.renameProfile(id, it); rename = null } }
-}
+private fun ProfilesSection(vm: BrowserViewModel) = ProfilesList(vm)
 
 @Composable
-private fun RoutingSection(vm: BrowserViewModel) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    var pattern by remember { mutableStateOf("") }
-    var target by remember { mutableStateOf(state.activeSpaceId) }
-    var exception by remember { mutableStateOf(false) }
-    Text("Links opened from other apps, pop-ups and new tabs are routed by these rules. A rule that would change Profile always asks first. " +
-        "Patterns: example.com (also www.), *.example.com (subdomains only), *example.com (apex + subdomains). Exceptions win.", fontSize = 12.sp)
-    OutlinedTextField(pattern, { pattern = it }, Modifier.fillMaxWidth().padding(top = 8.dp), label = { Text("Domain pattern") }, singleLine = true)
-    Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        state.spaces.forEach { sp -> FilterChip(target == sp.id, { target = sp.id }, { Text("${sp.emoji} ${sp.name}") }) }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(exception, { exception = it }); Text("Exception (never route)", fontSize = 13.sp)
-        Spacer(Modifier.weight(1f))
-        Button({ vm.addRule(pattern, target, exception); pattern = "" }, enabled = pattern.isNotBlank()) { Text("Add rule") }
-    }
-    LazyColumn {
-        items(state.rules, key = { it.id }) { r ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Switch(r.enabled, { vm.toggleRule(r.id) })
-                Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                    Text(r.pattern, fontSize = 15.sp)
-                    val sp = state.spaces.firstOrNull { it.id == r.spaceId }
-                    Text(if (r.exception) "Exception — never routed" else "→ ${sp?.emoji} ${sp?.name}", fontSize = 12.sp)
-                }
-                IconButton({ vm.deleteRule(r.id) }) { Icon(Icons.Default.Delete, "Delete rule") }
-            }
-        }
-    }
-}
+private fun RoutingSection(vm: BrowserViewModel) = RulesList(vm)
 
 @Composable
 private fun BookmarksSection(vm: BrowserViewModel) {

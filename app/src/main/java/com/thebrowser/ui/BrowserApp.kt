@@ -3,6 +3,9 @@ package com.thebrowser.ui
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -131,90 +134,76 @@ private fun TopBar(vm: BrowserViewModel, wide: Boolean, onMenu: () -> Unit) {
     val id = tab?.id
     val loading = id != null && (vm.progress[id] ?: 100) < 100
     var menu by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val pdfPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { u -> u?.let(vm::openPdfUri) }
+    val hasPage = tab != null && tab.url.isNotBlank()
+    val tabCount = state.tabs.count { it.spaceId == state.activeSpaceId }
 
-    Surface(tonalElevation = 2.dp) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         Column {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = HSpace.x1, vertical = HSpace.x1), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onMenu) { Icon(Icons.Default.Menu, "Sidebar") }
                 if (wide) {
                     IconButton(onClick = vm::back, enabled = id != null && vm.canBack[id] == true) { Icon(Icons.Default.ArrowBack, "Back") }
                     IconButton(onClick = vm::forward, enabled = id != null && vm.canForward[id] == true) { Icon(Icons.Default.ArrowForward, "Forward") }
                 }
-                IconButton(onClick = { if (loading) vm.stopLoading() else vm.reload() }, enabled = tab != null && tab.url.isNotBlank()) {
-                    Icon(if (loading) Icons.Default.Close else Icons.Default.Refresh, if (loading) "Stop" else "Reload")
-                }
-                // Address pill: tap to open the command bar.
-                Surface(
-                    Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(20.dp)).clickable { vm.commandBarOpen = true },
-                    shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant,
-                ) {
-                    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val secure = tab?.url?.startsWith("https://") == true
-                        if (tab != null && tab.url.isNotBlank()) {
-                            Icon(if (secure) Icons.Default.Lock else Icons.Default.Warning, if (secure) "Secure connection. Tap for site details" else "Not secure. Tap for site details",
-                                Modifier.size(20.dp).clickable { vm.siteInfoOpen = true }, tint = if (secure) MaterialTheme.colorScheme.primary else Color(0xFFD63031))
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        if (tab?.isPrivate == true) Text("🕶 ", fontSize = 14.sp)
-                        Text(
-                            tab?.url?.takeIf { it.isNotBlank() }?.let { AirTrafficControl.hostOf(it) ?: it } ?: "Search or enter address",
-                            maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (tab?.url.isNullOrBlank()) 0.55f else 1f),
-                        )
+                AddressField(vm, tab, hasPage, loading, Modifier.weight(1f))
+                if (wide) {
+                    Text(vm.engine.displayName.substringBefore(" ·").ifBlank { "Chromium" }, style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = HSpace.x2), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    IconButton(onClick = { vm.geminiOpen = !vm.geminiOpen }) { Text("AI", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }
+                    IconButton(onClick = vm::toggleBookmark, enabled = hasPage) {
+                        Icon(Icons.Default.Star, "Bookmark", tint = if (vm.isBookmarked(tab)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                     }
                 }
-                if (wide) {
-                    Text(vm.engine.displayName.substringBefore(" ·").ifBlank { "Chromium" }, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                }
-                vm.netSpeed.label?.let { l -> TextButton(onClick = vm.netSpeed::retest, contentPadding = PaddingValues(horizontal = 6.dp)) { Text(l, fontSize = 11.sp) } }
-                if (vm.canFill(tab)) IconButton(onClick = vm::fillCurrentPage) { Text("🔑", fontSize = 18.sp) }
-                TextButton(onClick = { vm.captureThumbs(); vm.tabSwitcherOpen = true }, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                    Text("${state.tabs.count { it.spaceId == state.activeSpaceId }}", fontSize = 14.sp)
-                }
-                IconButton(onClick = vm::toggleBookmark, enabled = tab != null && tab.url.isNotBlank()) {
-                    Icon(Icons.Default.Star, "Bookmark", tint = if (vm.isBookmarked(tab)) Color(0xFFFDCB6E) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-                }
-                IconButton(onClick = { vm.geminiOpen = !vm.geminiOpen }) { Text("✦", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary) }
+                TabCounter(tabCount) { vm.captureThumbs(); vm.tabSwitcherOpen = true }
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "More") }
-                    DropdownMenu(menu, { menu = false }) {
-                        if (!wide) {
-                            DropdownMenuItem({ Text("Back") }, { menu = false; vm.back() })
-                            DropdownMenuItem({ Text("Forward") }, { menu = false; vm.forward() })
-                        }
-                        DropdownMenuItem({ Text("New private tab") }, { menu = false; vm.newTab(private = true) })
-                        if (state.tabs.any { it.isPrivate }) DropdownMenuItem({ Text("Lock private tabs") }, { menu = false; vm.lockPrivate() })
-                        DropdownMenuItem({ Text("Security & Privacy Centre") }, { menu = false; vm.manage = ManageSection.Security })
-                        DropdownMenuItem({ Text("Open PDF…") }, { menu = false; pdfPicker.launch(arrayOf("application/pdf")) })
-                        DropdownMenuItem({ Text("Reader view") }, { menu = false; vm.openReader() })
-                        DropdownMenuItem({ Text("Save for offline reading") }, { menu = false; vm.saveOffline() })
-                        DropdownMenuItem({ Text("Clip to research note") }, { menu = false; vm.clipToNote(null) })
-                        DropdownMenuItem({ Text("Open in Little window") }, { menu = false; tab?.url?.takeIf { it.isNotBlank() }?.let(vm::openInLittleWindow) })
-                        DropdownMenuItem({ Text("Add to home screen as app") }, { menu = false; vm.pinWebApp() })
-                        DropdownMenuItem({ Text("Hide Distracting Items") }, { menu = false; vm.startHideMode() }, enabled = tab != null && tab.url.isNotBlank())
-                        if (vm.hiddenCountForActiveSite() > 0) DropdownMenuItem({ Text("Show hidden items (${vm.hiddenCountForActiveSite()})") }, {
-                            menu = false; tab?.url?.let { AirTrafficControl.hostOf(it) }?.let(vm::showHiddenItems)
-                        })
-                        DropdownMenuItem({ Text("Find in page") }, { menu = false; vm.findOpen = true })
-                        DropdownMenuItem({ Text("Print page") }, { menu = false; vm.print() })
-                        DropdownMenuItem({ Text("Share link") }, {
-                            menu = false
-                            tab?.url?.takeIf { it.isNotBlank() }?.let {
-                                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, it), "Share"))
-                            }
-                        })
-                        DropdownMenuItem({ Text("Split view") }, { menu = false; vm.message = if (wide) "Long-press a tab in the sidebar → Open in split." else "Split view needs a wider screen." })
-                        DropdownMenuItem({ Text("Downloads") }, { menu = false; vm.manage = ManageSection.Downloads })
-                        DropdownMenuItem({ Text("Reopen closed tab") }, { menu = false; vm.reopenClosed() })
-                        DropdownMenuItem({ Text("Settings") }, { menu = false; vm.manage = ManageSection.Spaces })
-                    }
+                    if (menu) PageMenu(vm, wide, tab, loading, pdfOpen = { pdfPicker.launch(arrayOf("application/pdf")) }, onDismiss = { menu = false })
                 }
             }
-            if (loading) LinearWavyProgressIndicator(progress = { (vm.progress[id] ?: 0) / 100f }, modifier = Modifier.fillMaxWidth())
+            if (loading) androidx.compose.material3.LinearProgressIndicator(progress = { (vm.progress[id] ?: 0) / 100f }, modifier = Modifier.fillMaxWidth().height(2.dp))
+            else HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             if (vm.findOpen) FindBar(vm)
+        }
+    }
+}
+
+/** Address field: shows the site, security state and reload/stop; tapping it opens the command bar (URL, search and all commands). */
+@Composable
+private fun AddressField(vm: BrowserViewModel, tab: Tab?, hasPage: Boolean, loading: Boolean, modifier: Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Surface(onClick = { vm.commandBarOpen = true }, modifier = modifier.height(HSize.touch), shape = RoundedCornerShape(HRadius.control), color = cs.surfaceVariant) {
+        Row(Modifier.padding(start = HSpace.x3), verticalAlignment = Alignment.CenterVertically) {
+            if (hasPage) {
+                val secure = tab?.url?.startsWith("https://") == true
+                Icon(if (secure) Icons.Default.Lock else Icons.Default.Warning, if (secure) "Secure connection. Tap for site details" else "Not secure. Tap for site details",
+                    Modifier.size(18.dp).clickable { vm.siteInfoOpen = true }, tint = if (secure) cs.onSurfaceVariant else cs.error)
+                Spacer(Modifier.width(HSpace.x2))
+            }
+            if (tab?.isPrivate == true) { Text("Private", style = MaterialTheme.typography.labelMedium, color = cs.primary); Spacer(Modifier.width(HSpace.x2)) }
+            Text(
+                tab?.url?.takeIf { it.isNotBlank() }?.let { AirTrafficControl.hostOf(it) ?: it } ?: "Search or enter address",
+                Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge,
+                color = if (hasPage) cs.onSurface else cs.onSurfaceVariant,
+            )
+            vm.netSpeed.label?.let { l -> Text(l, Modifier.clickable(onClick = vm.netSpeed::retest).padding(horizontal = HSpace.x1), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant) }
+            if (vm.canFill(tab)) IconButton(onClick = vm::fillCurrentPage, Modifier.size(40.dp)) { Icon(Icons.Default.Person, "Fill saved login", Modifier.size(HSize.icon)) }
+            IconButton(onClick = { if (loading) vm.stopLoading() else vm.reload() }, modifier = Modifier.size(HSize.touch), enabled = hasPage) {
+                Icon(if (loading) Icons.Default.Close else Icons.Default.Refresh, if (loading) "Stop" else "Reload", Modifier.size(HSize.icon))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabCounter(count: Int, onClick: () -> Unit) {
+    Box(
+        Modifier.size(HSize.touch).clip(RoundedCornerShape(HRadius.control)).clickable(onClick = onClick)
+            .semantics { contentDescription = "$count tabs. Open tab switcher" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(24.dp).border(1.5.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
+            Text("$count", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp))
         }
     }
 }

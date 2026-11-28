@@ -353,7 +353,7 @@ data class Settings(
     val tabHoverPreview: Boolean = true,      // page preview when the pointer rests on a tab
     val tabHoverMemory: Boolean = true,       // memory figure in that preview
     val passkeys: Boolean = true,
-    val dynamicColor: Boolean = true,
+    val dynamicColor: Boolean = false,
     val shield: com.thebrowser.core.shield.ShieldSettings = com.thebrowser.core.shield.ShieldSettings(),
     val agent: AgentSettings = AgentSettings(),
     val theme: ThemeSettings = ThemeSettings(),

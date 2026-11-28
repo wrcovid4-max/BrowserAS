@@ -46,7 +46,15 @@ internal fun EngineSwitch(vm: BrowserViewModel) {
         },
         fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp),
     )
-    if (!geckoPresent) Text("Gecko is not included in this build (hydrogen.gecko=false), so only Chromium can be chosen.", fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+    EngineKind.entries.filter { !EngineChoice.isAvailable(it, geckoPresent) }.forEach { k ->
+        Text(
+            when (k) {
+                EngineKind.GECKO -> "Gecko isn't in this build. Set hydrogen.gecko=true in gradle.properties, sync and reinstall to include it."
+                EngineKind.WEBKIT -> "WebKit is Apple's engine for iPhone, iPad, Mac and Vision Pro. Android has no WebKit engine, so it can't be offered here."
+                EngineKind.CHROMIUM -> ""
+            }, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp),
+        )
+    }
     EngineChoice.lastError(ctx)?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp)) }
     if (picked != running) {
         Text("Restart Hydrogen to switch to ${picked.label}.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))

@@ -92,3 +92,13 @@ Known remaining: DNS rebinding between the check and the fetch is reduced, not e
 - Debug builds now use applicationId `com.thebrowser.debug` (no clash with an older install's signature or version); debug shortcuts point at that id.
 - Gecko is off by default (`hydrogen.gecko=false`) so the APK is small and no GeckoView download or CPU-type mismatch can block the install; turn it on once the app runs.
 - Exact failure reason still unknown until `adb install` or the Run tab shows `INSTALL_FAILED_…`.
+
+## UI refinement pass (Android)
+- **Design system:** `Tokens.kt` (4dp spacing scale, 12/16/20dp radii, 44/48dp sizes, Roboto type scale 24/20/18/16/15/14/13/12/11sp, 12/16/20dp shapes), `Theme.kt` (neutral light and dark surfaces, one teal accent, standard motion), `HComponents.kt` (Button, OutlinedButton, TextButton, FilledTonalButton restyled app-wide; HCard, HGroupLabel, HTitleSubtitle). Material You wallpaper colours now default to off for new installs; an existing install keeps its saved choice (Settings → Appearance → Wallpaper colours).
+- **Toolbar:** phone toolbar is menu, address field (security, site, reload/stop), tab counter, ⋮. Bookmark, back, forward, share and Gemini moved into the ⋮ sheet on phones and stay in the toolbar on wide screens. Thin progress line replaces the wavy indicator.
+- **Browser menu:** bottom sheet on phones (quick actions, then grouped rows, max 70% height), 280–320dp popover on wide screens. Same commands on both.
+- **Command bar, sidebar, dialogs:** emoji controls replaced by text and icons; 48dp rows; dialogs use 20dp corners and 24dp padding through the theme.
+- **Spaces, Profiles, Air Traffic:** compact bordered lists; actions in a ⋮ menu; Space colour, icon and Profile open when you tap a Space; delete now asks first (Space and Profile). Rule matching and routing logic untouched.
+- **App icon:** Settings → Appearance → App icon, white H or black H, via two launcher aliases.
+- **Engines:** Gecko was greyed out only because the build flag `hydrogen.gecko` had been set to false to get the first install through; it is true again (arm64 only). WebKit stays unavailable on Android because Android has no WebKit engine; the switch now says why. If an install fails or stalls, set the flag to false.
+- Not compiled or run here. Check on the phone: toolbar, ⋮ sheet, Spaces, app-icon switch (launcher can lag a few seconds).

@@ -43,10 +43,10 @@ fun LetterChip(title: String, size: Int = 28, onClick: (() -> Unit)? = null) {
     val letter = title.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "•"
     val color = SpaceColors[(title.hashCode().let { if (it < 0) -it else it }) % SpaceColors.size]
     Box(
-        Modifier.size(size.dp).clip(CircleShape).background(Color(color).copy(alpha = 0.85f))
+        Modifier.size(size.dp).clip(RoundedCornerShape((size * 0.3f).dp)).background(MaterialTheme.colorScheme.secondaryContainer)
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         contentAlignment = Alignment.Center,
-    ) { Text(letter, color = Color.White, fontSize = (size * 0.45f).sp) }
+    ) { Text(letter, color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = (size * 0.45f).sp) }
 }
 
 @Composable
@@ -67,7 +67,7 @@ fun Sidebar(vm: BrowserViewModel, compact: Boolean, onNavigate: () -> Unit) {
     Column(Modifier.width(width).fillMaxHeight().background(panelColor(vm)).padding(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             if (!compact) {
-                Text("${space.emoji} ${space.name}", Modifier.weight(1f), fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${space.emoji} ${space.name}", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             IconButton({ vm.updateSettings { it.copy(sidebarCompact = !compact) } }, Modifier.size(36.dp)) {
                 Icon(if (compact) Icons.Default.KeyboardArrowRight else Icons.Default.KeyboardArrowLeft, "Toggle compact sidebar")
@@ -77,7 +77,7 @@ fun Sidebar(vm: BrowserViewModel, compact: Boolean, onNavigate: () -> Unit) {
             FilledTonalButton({ vm.newTab(); onNavigate() }, Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 8.dp)) {
                 Icon(Icons.Default.Add, null); if (!compact) { Spacer(Modifier.width(4.dp)); Text("New tab") }
             }
-            if (!compact) FilledTonalButton({ vm.newTab(private = true); onNavigate() }, contentPadding = PaddingValues(horizontal = 10.dp)) { Text("🕶") }
+            if (!compact) FilledTonalButton({ vm.newTab(private = true); onNavigate() }, contentPadding = PaddingValues(horizontal = 10.dp)) { Icon(Icons.Default.Lock, "New private tab") }
             if (!compact) FilledTonalButton({ vm.commandBarOpen = true; onNavigate() }, contentPadding = PaddingValues(horizontal = 10.dp)) { Icon(Icons.Default.Search, "Search tabs") }
         }
 
@@ -96,7 +96,7 @@ fun Sidebar(vm: BrowserViewModel, compact: Boolean, onNavigate: () -> Unit) {
                 if (!g.collapsed) items(inSpace.filter { it.groupId == g.id }, key = { it.id }) { TabItem(vm, it, compact, state.activeTabId == it.id, onNavigate) }
             }
             if (privateTabs.isNotEmpty()) {
-                item { SectionLabel("🕶 Private", compact) }
+                item { SectionLabel("Private", compact) }
                 items(privateTabs, key = { it.id }) { TabItem(vm, it, compact, state.activeTabId == it.id, onNavigate) }
             }
             if (loose.isNotEmpty()) {
@@ -111,7 +111,7 @@ fun Sidebar(vm: BrowserViewModel, compact: Boolean, onNavigate: () -> Unit) {
             state.spaces.forEach { sp ->
                 Box(
                     Modifier.size(36.dp).clip(CircleShape)
-                        .background(if (sp.id == space.id) Color(sp.colorArgb) else MaterialTheme.colorScheme.surfaceVariant)
+                        .background(if (sp.id == space.id) Color(sp.colorArgb).copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant)
                         .tabDropTarget { id ->
                             val t = state.tabs.firstOrNull { it.id == id }
                             if (t == null || t.spaceId == sp.id) false
@@ -126,7 +126,7 @@ fun Sidebar(vm: BrowserViewModel, compact: Boolean, onNavigate: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             IconButton({ vm.manage = ManageSection.Bookmarks }) { Icon(Icons.Default.Star, "Bookmarks") }
             IconButton({ vm.manage = ManageSection.History }) { Icon(Icons.Default.DateRange, "History") }
-            IconButton({ vm.geminiOpen = !vm.geminiOpen; onNavigate() }) { Text("✦", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary) }
+            IconButton({ vm.geminiOpen = !vm.geminiOpen; onNavigate() }) { Text("AI", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }
             IconButton({ vm.manage = ManageSection.Spaces }) { Icon(Icons.Default.Settings, "Settings") }
         }
     }
@@ -146,7 +146,7 @@ fun Sidebar(vm: BrowserViewModel, compact: Boolean, onNavigate: () -> Unit) {
 @Composable
 private fun SectionLabel(text: String, compact: Boolean) {
     if (compact) HorizontalDivider(Modifier.padding(vertical = 6.dp))
-    else Text(text, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), modifier = Modifier.padding(start = 8.dp, top = 10.dp, bottom = 2.dp))
+    else Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp))
 }
 
 @OptIn(ExperimentalFoundationApi::class)

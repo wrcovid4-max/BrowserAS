@@ -57,7 +57,7 @@ fun GeminiPanel(vm: BrowserViewModel) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxSize().padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("✦ Gemini", Modifier.weight(1f), fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                Text("Gemini", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                 IconButton({ showHistory = true }) { Icon(Icons.Default.List, "Conversations") }
                 IconButton({ g.newConversation() }) { Icon(Icons.Default.Add, "New conversation") }
                 IconButton({ g.clearConversation() }, enabled = messages.isNotEmpty()) { Icon(Icons.Default.Delete, "Clear conversation") }

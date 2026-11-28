@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -71,12 +72,12 @@ fun CommandBar(vm: BrowserViewModel) {
         val commands = listOf(
             Cmd("New tab") { vm.newTab(openCommandBar = false); close() },
             Cmd("Reopen closed tab") { vm.reopenClosed(); close() },
-            Cmd("New private tab", "🕶") { vm.newTab(private = true); close() },
+            Cmd("New private tab", "Private browsing") { vm.newTab(private = true); close() },
             Cmd("Reader view") { vm.openReader(); close() },
             Cmd("Tab switcher") { vm.captureThumbs(); vm.tabSwitcherOpen = true; close() },
             Cmd("Find in page") { vm.findOpen = true; close() },
             Cmd("Toggle sidebar") { vm.sidebarVisible = !vm.sidebarVisible; close() },
-            Cmd("Open Gemini", "✦") { vm.geminiOpen = true; close() },
+            Cmd("Open Gemini", "AI assistant") { vm.geminiOpen = true; close() },
             Cmd("Air Traffic Control rules") { vm.manage = ManageSection.Routing; close() },
             Cmd("Bookmarks") { vm.manage = ManageSection.Bookmarks; close() },
             Cmd("History") { vm.manage = ManageSection.History; close() },
@@ -102,8 +103,8 @@ fun CommandBar(vm: BrowserViewModel) {
     }
 
     Dialog(onDismissRequest = ::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.padding(16.dp).widthIn(max = 640.dp).fillMaxWidth(), shape = RoundedCornerShape(20.dp), tonalElevation = 6.dp) {
-            Column(Modifier.padding(12.dp)) {
+        Surface(Modifier.padding(16.dp).widthIn(max = 640.dp).fillMaxWidth(), shape = RoundedCornerShape(HRadius.dialog), tonalElevation = 0.dp, shadowElevation = 6.dp) {
+            Column(Modifier.padding(HSpace.x3)) {
                 OutlinedTextField(
                     q, { q = it }, Modifier.fillMaxWidth().focusRequester(focus), singleLine = true,
                     placeholder = { Text("Search, enter address, or type a command") },
@@ -112,9 +113,9 @@ fun CommandBar(vm: BrowserViewModel) {
                 )
                 LazyColumn(Modifier.heightIn(max = 380.dp).padding(top = 8.dp)) {
                     items(results) { r ->
-                        Column(Modifier.fillMaxWidth().clickable { r.run() }.padding(horizontal = 8.dp, vertical = 10.dp)) {
-                            Text(r.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (r.sub.isNotEmpty()) Text(r.sub, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                        Column(Modifier.fillMaxWidth().heightIn(min = HSize.menuRow).clip(RoundedCornerShape(HRadius.control)).clickable { r.run() }.padding(horizontal = HSpace.x3, vertical = HSpace.x2), verticalArrangement = Arrangement.Center) {
+                            Text(r.label, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+                            if (r.sub.isNotEmpty()) Text(r.sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -258,7 +259,7 @@ fun TabSwitcher(vm: BrowserViewModel) {
                                     else LetterChip(t.displayTitle, 40)
                                 }
                                 Row(Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    if (t.isPrivate) Text("🕶 ", fontSize = 12.sp)
+                                    if (t.isPrivate) Text("Private · ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     Text(if (hide) "Private tab (locked)" else t.displayTitle, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
                                     IconButton({ vm.closeTab(t.id) }, Modifier.size(32.dp)) { Icon(Icons.Default.Close, "Close tab", Modifier.size(14.dp)) }
                                 }
